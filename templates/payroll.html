@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payroll System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #fdfbfb, #ebedee);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        h2 {
+            color: #0d6efd;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+        .btn {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .table th {
+            background-color: #343a40;
+            color: white;
+        }
+        .highlight {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Payroll Management</h2>
+            <button onclick="location.href='/dashboard'" class="btn btn-secondary">Back to Dashboard</button>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Calculate Payroll</h5>
+            </div>
+            <div class="card-body">
+                <form id="payrollForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-5">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="form-group col-md-5">
+                            <label for="endDate">End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                        <div class="form-group col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-block">Calculate</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Settings Panel -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Admin Payroll Settings</h5>
+            </div>
+            <div class="card-body">
+                <form id="settingsForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label for="hourlyRate">Hourly Rate (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="hourlyRate" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="fullDayRate">Full Day Rate (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="fullDayRate" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="minHours">Min Hours for Full Day</label>
+                            <input type="number" step="0.1" class="form-control" id="minHours" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="overtimeMultiplier">Overtime Multiplier</label>
+                            <input type="number" step="0.1" class="form-control" id="overtimeMultiplier" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Update Settings</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="payrollResults" class="mb-4" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Payroll Results</h4>
+                <button id="printBtn" class="btn btn-outline-primary">Print Report</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Total Hours</th>
+                            <th>Regular Hours</th>
+                            <th>Overtime Hours</th>
+                            <th>Base Pay (₹)</th>
+                            <th>Overtime Pay (₹)</th>
+                            <th>Total Pay (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payrollTable"></tbody>
+                    <tfoot>
+                        <tr class="highlight">
+                            <td colspan="4" class="text-right"><strong>Grand Total:</strong></td>
+                            <td id="totalBasePay">₹0.00</td>
+                            <td id="totalOvertimePay">₹0.00</td>
+                            <td id="grandTotalPay">₹0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Payroll History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Period</th>
+                                <th>Total Pay (₹)</th>
+                                <th>Payment Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Load payroll history
+            loadPayrollHistory();
+
+            // Handle payroll calculation
+            $("#payrollForm").submit(function(e) {
+                e.preventDefault();
+                const startDate = $("#startDate").val();
+                const endDate = $("#endDate").val();
+
+                if (!startDate || !endDate) {
+                    alert("Please select both start and end dates");
+                    return;
+                }
+
+                $.post("/calculate_payroll", {
+                    start_date: startDate,
+                    end_date: endDate
+                }, function(data) {
+                    displayPayrollResults(data, startDate, endDate);
+                }).fail(function(xhr) {
+                    alert("Error calculating payroll: " + xhr.responseJSON.error);
+                });
+            });
+
+            // Handle admin settings form submission
+            $("#settingsForm").submit(function(e) {
+                e.preventDefault();
+
+                const settings = {
+                    HOURLY_RATE: parseFloat($("#hourlyRate").val()),
+                    FULL_DAY_RATE: parseFloat($("#fullDayRate").val()),
+                    MIN_HOURS_FOR_FULL_DAY: parseFloat($("#minHours").val()),
+                    OVERTIME_MULTIPLIER: parseFloat($("#overtimeMultiplier").val())
+                };
+
+                $.ajax({
+                    url: "/update_settings",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(settings),
+                    success: function(response) {
+                        alert("Settings updated successfully.");
+                    },
+                    error: function(xhr) {
+                        alert("Failed to update settings: " + xhr.responseJSON.error);
+                    }
+                });
+            });
+
+            // Print button
+            $("#printBtn").click(function() {
+                window.print();
+            });
+        });
+
+        function loadPayrollHistory() {
+            $.get("/get_payroll_history", function(data) {
+                let tableHtml = "";
+                data.forEach(item => {
+                    tableHtml += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.start_date} to ${item.end_date}</td>
+                            <td>₹${item.total_pay.toFixed(2)}</td>
+                            <td>${item.payment_date}</td>
+                        </tr>
+                    `;
+                });
+
+                if (tableHtml === "") {
+                    tableHtml = `<tr><td colspan="4" class="text-center">No payroll history found</td></tr>`;
+                }
+
+                $("#historyTable").html(tableHtml);
+            });
+        }
+
+        function displayPayrollResults(data, startDate, endDate) {
+            let tableHtml = "";
+            let totalBase = 0;
+            let totalOvertime = 0;
+            let grandTotal = 0;
+
+            data.forEach(employee => {
+                tableHtml += `
+                    <tr>
+                        <td>${employee.name}</td>
+                        <td>${employee.total_hours}</td>
+                        <td>${employee.regular_hours}</td>
+                        <td>${employee.overtime_hours}</td>
+                        <td>₹${employee.base_pay.toFixed(2)}</td>
+                        <td>₹${employee.overtime_pay.toFixed(2)}</td>
+                        <td>₹${employee.total_pay.toFixed(2)}</td>
+                    </tr>
+                `;
+
+                totalBase += employee.base_pay;
+                totalOvertime += employee.overtime_pay;
+                grandTotal += employee.total_pay;
+            });
+
+            $("#payrollTable").html(tableHtml);
+            $("#totalBasePay").text("₹" + totalBase.toFixed(2));
+            $("#totalOvertimePay").text("₹" + totalOvertime.toFixed(2));
+            $("#grandTotalPay").text("₹" + grandTotal.toFixed(2));
+
+            $("#payrollResults h4").text(`Payroll Results (${startDate} to ${endDate})`);
+            $("#payrollResults").show();
+
+            loadPayrollHistory();
+        }
+    </script>
+</body>
+</html>

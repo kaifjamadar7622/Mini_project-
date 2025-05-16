@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="text-center text-primary">Attendance Report</h2>
+        <table class="table table-bordered mt-4">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="reportTable"></tbody>
+        </table>
+        <div class="text-center">
+            <button onclick="location.href='/dashboard'" class="btn btn-secondary">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $.get("/get_attendance_report", function (data) {
+                let table = "";
+                data.forEach(d => {
+                    table += `<tr><td>${d.name}</td><td>${d.check_in_time}</td><td>${d.check_out_time}</td><td>${d.status}</td></tr>`;
+                });
+                $("#reportTable").html(table);
+            });
+        });
+    </script>
+</body>
+</html>

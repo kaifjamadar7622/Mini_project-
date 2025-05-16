@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #f50057;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #303f9f);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 1rem;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        
+        .btn-success {
+            background-color: #4caf50;
+            border-color: #4caf50;
+        }
+        
+        .btn-fingerprint {
+            background-color: #ff9800;
+            border-color: #ff9800;
+            color: white;
+        }
+        
+        .btn-fingerprint:hover {
+            background-color: #f57c00;
+            border-color: #f57c00;
+            color: white;
+        }
+        
+        .video-container {
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+        }
+        
+        .alert-box {
+            transition: opacity 0.5s;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 90%;
+            width: 350px;
+        }
+        
+        .feature-icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        
+        .footer {
+            background-color: var(--dark-bg);
+            color: white;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1060;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-fingerprint me-2"></i>Biometric Attendance System</h1>
+                    <p class="lead mb-0">Secure, fast, and reliable attendance tracking</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div id="clock" class="fs-4"></div>
+                    <div id="date" class="text-light-emphasis"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row g-4">
+            <!-- Registration Card -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="fas fa-user-plus feature-icon"></i>
+                        <h4 class="mb-0">Registration</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs mb-3" id="registerTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="face-reg-tab" data-bs-toggle="tab" data-bs-target="#face-reg" type="button" role="tab">
+                                    <i class="fas fa-camera me-1"></i> Face
+                                </button>
+                            </li>
+                          
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="fingerprint-reg-tab" data-bs-toggle="tab" data-bs-target="#fingerprint-reg" type="button" role="tab">
+                                    <i class="fas fa-fingerprint me-1"></i> Fingerprint
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="registerTabsContent">
+                            <div class="tab-pane fade show active" id="face-reg" role="tabpanel">
+                                <form id="registerForm" class="needs-validation" novalidate>
+                                    <div class="mb-3">
+                                        <label for="regName" class="form-label">Full Name</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                            <input type="text" class="form-control" id="regName" name="name" placeholder="Enter employee name" required>
+                                            <div class="invalid-feedback">
+                                                Please provide a name.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="empId" class="form-label">Employee ID</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                            <input type="text" class="form-control" id="empId" name="employee_id" placeholder="Enter employee ID" required>
+                                            <div class="invalid-feedback">
+                                                Please provide an employee ID.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="biometricImage" class="form-label">Upload Face Image</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-file-image"></i></span>
+                                            <input type="file" class="form-control" id="biometricImage" name="biometric_image" accept="image/*" required>
+                                            <div class="invalid-feedback">
+                                                Please provide a face image.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Register Face
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="tab-pane fade" id="fingerprint-reg" role="tabpanel">
+                                <div class="text-center mb-4 mt-3">
+                                    <i class="fas fa-fingerprint fa-5x text-primary mb-3"></i>
+                                    <h5>Fingerprint Registration</h5>
+                                    <p>Register your fingerprint for quick attendance</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fpRegName" class="form-label">Full Name</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" class="form-control" id="fpRegName" placeholder="Enter employee name" required>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button id="registerFingerprintBtn" class="btn btn-fingerprint">
+                                        <i class="fas fa-fingerprint me-2"></i>Register Fingerprint
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <small><i class="fas fa-shield-alt me-1"></i>Your biometric data is securely encrypted</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication Card -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="fas fa-sign-in-alt feature-icon"></i>
+                        <h4 class="mb-0">Authentication</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs mb-3" id="loginTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="face-login-tab" data-bs-toggle="tab" data-bs-target="#face-login" type="button" role="tab">
+                                    <i class="fas fa-camera me-1"></i> Face
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="fingerprint-login-tab" data-bs-toggle="tab" data-bs-target="#fingerprint-login" type="button" role="tab">
+                                    <i class="fas fa-fingerprint me-1"></i> Fingerprint
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="loginTabsContent">
+                            <div class="tab-pane fade show active" id="face-login" role="tabpanel">
+                                <div class="video-container mb-3">
+                                    <video id="video" width="640" height="480" autoplay></video>
+                                    <canvas id="canvas" style="display:none;"></canvas>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button id="capture" class="btn btn-primary">
+                                        <i class="fas fa-camera me-2"></i>Capture Face
+                                    </button>
+                                    <button id="loginBtn" class="btn btn-success">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Verify & Login
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="fingerprint-login" role="tabpanel">
+                                <div class="text-center mb-4 mt-3">
+                                    <i class="fas fa-fingerprint fa-5x text-primary mb-3"></i>
+                                    <h5>Fingerprint Authentication</h5>
+                                    <p>Place your finger on the scanner to verify your identity</p>
+                                </div>
+                                <div class="d-grid">
+                                    <button id="loginFingerprintBtn" class="btn btn-fingerprint">
+                                        <i class="fas fa-fingerprint me-2"></i>Scan Fingerprint
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small><i class="fas fa-clock me-1"></i>Last login: <span id="lastLogin">Never</span></small>
+                            <span class="badge bg-primary" id="status">Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div><i class="fas fa-history feature-icon"></i>Recent Activity</div>
+                        <button class="btn btn-sm btn-outline-light" id="refreshActivity">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Time</th>
+                                        <th>Date</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activityTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-3">No recent activity</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 Biometric Attendance System</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Version 2.0</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5 id="loadingMessage">Processing...</h5>
+        </div>
+    </div>
+
+    <!-- Alert Box -->
+    <div class="alert-box" style="display: none;" id="alertBox"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Clock and date display
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerHTML = now.toLocaleTimeString();
+            document.getElementById('date').innerHTML = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Form validation
+        (() => {
+            'use strict';
+            
+            const forms = document.querySelectorAll('.needs-validation');
+            
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+        
+        // Alert function
+        function showAlert(message, type = 'info') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <strong>${type === 'success' ? 'Success!' : type === 'danger' ? 'Error!' : 'Info'}</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                const alert = new bootstrap.Alert(document.querySelector('.alert'));
+                alert.close();
+            }, 5000);
+        }
+        
+        // Loading overlay
+        function showLoading(message = 'Processing...') {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        
+        // Initialize video
+        const video = document.getElementById('video');
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                showAlert('Camera access denied. Please enable camera permissions.', 'warning');
+            });
+        
+        // Capture button
+        document.getElementById('capture').addEventListener('click', () => {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            showAlert('Face captured successfully. Click "Verify & Login" to continue.', 'success');
+            document.getElementById('status').textContent = 'Face Captured';
+        });
+        
+        // Login button
+        $("#loginBtn").click(function () {
+            const canvas = document.getElementById('canvas');
+            if (canvas.width === 0) {
+                showAlert('Please capture your face image first.', 'warning');
+                return;
+            }
+            
+            showLoading('Verifying your identity...');
+            
+            canvas.toBlob(blob => {
+                let formData = new FormData();
+                formData.append("face_image", blob);
+                
+                $.ajax({
+                    url: "/login",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        hideLoading();
+                        window.location.href = res.redirect;
+                    },
+                    error: function (xhr) {
+                        hideLoading();
+                        showAlert(xhr.responseJSON.error || 'Authentication failed', 'danger');
+                    }
+                });
+            });
+        });
+        
+        // Register form
+        $("#registerForm").submit(function (e) {
+            e.preventDefault();
+            if (!this.checkValidity()) {
+                return;
+            }
+            
+            showLoading('Registering face biometric...');
+            
+            let formData = new FormData(this);
+            $.ajax({
+                url: "/register_employee",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    hideLoading();
+                    showAlert(res.message, 'success');
+                    document.getElementById('registerForm').reset();
+                    document.querySelector('#registerForm').classList.remove('was-validated');
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    showAlert(xhr.responseJSON.error || 'Registration failed', 'danger');
+                }
+            });
+        });
+        
+        // Register fingerprint
+        $("#registerFingerprintBtn").click(function () {
+            const name = document.getElementById('fpRegName').value.trim();
+            if (!name) {
+                showAlert('Please enter a name first', 'warning');
+                return;
+            }
+            
+            showLoading('Waiting for fingerprint scan...');
+            
+            captureFingerprint(function (pidDataXml) {
+                $.post("/register_fingerprint", { name: name, pidData: pidDataXml }, function (res) {
+                    hideLoading();
+                    showAlert(res.message, 'success');
+                    document.getElementById('fpRegName').value = '';
+                }).fail(xhr => {
+                    hideLoading();
+                    showAlert(xhr.responseJSON.error || 'Fingerprint registration failed', 'danger');
+                });
+            });
+        });
+        
+        // Login with fingerprint
+        $("#loginFingerprintBtn").click(function () {
+            showLoading('Waiting for fingerprint scan...');
+            
+            captureFingerprint(function (pidDataXml) {
+                $.post("/login_fingerprint", { pidData: pidDataXml }, function (res) {
+                    hideLoading();
+                    window.location.href = res.redirect;
+                }).fail(xhr => {
+                    hideLoading();
+                    showAlert(xhr.responseJSON.error || 'Fingerprint authentication failed', 'danger');
+                });
+            });
+        });
+        
+        // Fingerprint capture function
+        function captureFingerprint(callback) {
+            const captureXML = `<?xml version='1.0'?><CaptureRequest ver='1.0' env='P' fCount='1' fType='0' iCount='1' pCount='0' format='0' pidVer='2.0' timeout='20000' posh='UNKNOWN' captureTime='0' type='FMR' />`;
+            
+            $.ajax({
+                url: "http://127.0.0.1:11100/rd/capture",
+                type: "CAPTURE",
+                data: captureXML,
+                contentType: "text/xml; charset=utf-8",
+                success: function (data) {
+                    const pidDataXml = new XMLSerializer().serializeToString(data);
+                    callback(pidDataXml);
+                },
+                error: function () {
+                    hideLoading();
+                    showAlert("Fingerprint capture failed. Make sure the device is connected properly.", 'danger');
+                }
+            });
+        }
+        
+        // Mock refresh activity button
+        document.getElementById('refreshActivity').addEventListener('click', function() {
+            showLoading('Refreshing activity data...');
+            setTimeout(() => {
+                hideLoading();
+                showAlert('Activity log refreshed', 'success');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
